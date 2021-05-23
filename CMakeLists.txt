@@ -23,6 +23,6 @@ link_libraries(m pthread)
 add_compile_options(-m64 -O3 -g -pedantic-errors -Wall
                     -Wextra -Werror -Wno-implicit-fallthrough)
 # Submodules
-add_subdirectory(belatedly)
+#add_subdirectory(belatedly)
 add_subdirectory(common)
 add_subdirectory(caching)
