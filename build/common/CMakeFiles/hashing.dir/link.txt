@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libhashing.a CMakeFiles/hashing.dir/src/MurmurHash3.cpp.o
+/usr/bin/ranlib ../lib/libhashing.a
