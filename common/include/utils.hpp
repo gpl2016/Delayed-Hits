@@ -234,7 +234,8 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,
         }
     }
     assert(local_max_num_concurrent_flows == 0); // Sanity check
-    return TraceMetadata{idx_ranges.size(), global_max_num_concurrent_flows};
+    std::cout<<"196 exec"<<std::endl;
+    return TraceMetadata{idx_ranges.size(), global_max_num_concurrent_flows};//what the getFlowCounts final returns
 }
 
 /**
@@ -260,6 +261,7 @@ TraceMetadata getFlowCounts(const std::vector<std::string>& trace) {
         }
     }
     // Invoke the helper method
+        std::cout<<"245 exec"<<std::endl;
     return getFlowCounts(idx_ranges);
 }
 
@@ -300,6 +302,7 @@ TraceMetadata getFlowCounts(const std::string& trace_fp) {
         idx++;
     }
     // Invoke the helper method
+        std::cout<<"271 exec"<<std::endl;
     return getFlowCounts(idx_ranges);
 }
 } // namespace utils
