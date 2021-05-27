@@ -193,8 +193,14 @@ struct TraceMetadata {
  * Given a map of flow IDs and their idx ranges, returns the total number of
  * flows, as well as the maximum number of concurrent flows at any timestep.
  */
-TraceMetadata getFlowCounts(const std::unordered_map<std::string,
-                            std::pair<size_t, size_t>>& idx_ranges) {
+TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_t, size_t>>& idx_ranges) {
+
+        std::unordered_map<std::string,std::pair<size_t, size_t>>::iterator it;
+        for (it = idx_ranges.begin(); it != idx_ranges.end(); it ++ )
+            std::cout << (*it).first << ' ' << (*it).second << endl;
+
+
+
     std::vector<std::pair<size_t, bool>> all_points;
     size_t global_max_num_concurrent_flows = 0;
 
@@ -228,10 +234,10 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,
             assert(local_max_num_concurrent_flows > 0);
             local_max_num_concurrent_flows--;
         }
-
-        if (local_max_num_concurrent_flows > global_max_num_concurrent_flows) {
-            global_max_num_concurrent_flows = local_max_num_concurrent_flows;
-        }
+        global_max_num_concurrent_flows=std::max(global_max_num_concurrent_flows,local_max_num_concurrent_flows);
+//        if (local_max_num_concurrent_flows > global_max_num_concurrent_flows) {
+//            global_max_num_concurrent_flows = local_max_num_concurrent_flows;
+//        }
     }
     assert(local_max_num_concurrent_flows == 0); // Sanity check
     std::cout<<"196 exec"<<std::endl;
