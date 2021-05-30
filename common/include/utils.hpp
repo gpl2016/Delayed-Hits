@@ -292,16 +292,16 @@ TraceMetadata getFlowCounts(const std::string& trace_fp) {
 
             // Parse the packet's timestamp and flow ID
             std::getline(linestream, timestamp, ';');//stringstream,when readin the firsr part,stringstream will ignore the part
+            //https://blog.csdn.net/weixin_43347376/article/details/105134445?utm_medium=distribute.pc_relevant.none-task-blog-baidujs_title-0&spm=1001.2101.3001.4242
             std::getline(linestream, flow_id,';');//"; or \n "
-            std::cout<<timestamp<<" "<<flow_id<<std::endl;
             // This is the first request to this flow
             auto iter = idx_ranges.find(flow_id);
             if (iter == idx_ranges.end()) {
-                idx_ranges[flow_id] = std::make_pair(idx, idx);
+                idx_ranges[flow_id] = std::make_pair(idx, idx);//idx actually is the timestamps
             }
             // Else, update the last idx
             else {
-                iter->second.second = idx;
+                iter->second.second = idx;//flow_id最开始请求的timestamps到最后请求的timestmaps
             }
         }
         idx++;
