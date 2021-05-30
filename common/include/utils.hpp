@@ -194,12 +194,11 @@ struct TraceMetadata {
  * flows, as well as the maximum number of concurrent flows at any timestep.
  */
 TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_t, size_t>>& idx_ranges) {
-
-        std::unordered_map<std::string,std::pair<size_t, size_t>>::iterator it;
-        for (it = idx_ranges.begin(); it != idx_ranges.end(); it ++ )
-            std::cout << (*it).first << ' ' << (*it).second << endl;
-
-
+        std::ofstream outputfile;
+        outputfile.open ("idx_ranges.txt");
+        for( const auto& n : idx_ranges) {
+            outputfile << "Key:[" << n.first << "] Value:[" << n.second.first <<" "<<n.second.second <<"]\n";
+        }
 
     std::vector<std::pair<size_t, bool>> all_points;
     size_t global_max_num_concurrent_flows = 0;
@@ -284,17 +283,17 @@ TraceMetadata getFlowCounts(const std::string& trace_fp) {
     size_t idx = 0;
 
     // Populate the trace vector
-    while (std::getline(trace_ifs, line)) {
+    while (std::getline(trace_ifs, line)) {//read to "line"
 
         // Nonempty packet
         if (!line.empty()) {
             std::string timestamp, flow_id;
-            std::stringstream linestream(line);
+            std::stringstream linestream(line);//stringstream,
 
             // Parse the packet's timestamp and flow ID
-            std::getline(linestream, timestamp, ';');
-            std::getline(linestream, flow_id, ';');
-
+            std::getline(linestream, timestamp, ';');//stringstream,when readin the firsr part,stringstream will ignore the part
+            std::getline(linestream, flow_id,';');//"; or \n "
+            std::cout<<timestamp<<" "<<flow_id<<std::endl;
             // This is the first request to this flow
             auto iter = idx_ranges.find(flow_id);
             if (iter == idx_ranges.end()) {
