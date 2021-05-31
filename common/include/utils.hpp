@@ -197,6 +197,7 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_
         std::ofstream outputfile;
         outputfile.open ("idx_ranges.txt");
         for( const auto& n : idx_ranges) {
+            //id_ranges : string,pair
             outputfile << "Key:[" << n.first << "] Value:[" << n.second.first <<" "<<n.second.second <<"]\n";
         }
 
@@ -209,6 +210,11 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_
         all_points.push_back(std::make_pair(idx_range.first, true));
         all_points.push_back(std::make_pair(idx_range.second, false));
     }
+//        std::ofstream outputfile2;
+//        outputfile2.open("all_points");
+//    for(const auto & t: all_points){
+//        outputfile2<<t.first<<" "<<t.second<<std::endl;
+//    }
 
     // Next, sort the list (using the start/stop flag to break ties)
     std::sort(
