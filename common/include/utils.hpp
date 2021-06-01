@@ -210,6 +210,8 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_
         all_points.push_back(std::make_pair(idx_range.first, true));
         all_points.push_back(std::make_pair(idx_range.second, false));
     }
+    //all_points里面是timestamp，某个flow的开始时间+true，结束时间+false
+
 //        std::ofstream outputfile2;
 //        outputfile2.open("all_points");
 //    for(const auto & t: all_points){
@@ -217,25 +219,27 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_
 //    }
 
     // Next, sort the list (using the start/stop flag to break ties)
+    //排序规则：all_points中timestamp升序，若timestamp相同，second=1优先
     std::sort(
         all_points.begin(), all_points.end(),
         [](const std::pair<size_t, bool>& left,
-           const std::pair<size_t, bool>& right) {
+           const std::pair<size_t, bool>& right) {//
             return ((left.first < right.first) ||
                     ((left.first == right.first) &&
                       left.second && !right.second));
     });
 
+
     // Finally, compute the number of concurrent flows at every
     // timestep. If required, update the global maximum value.
     size_t local_max_num_concurrent_flows = 0;
-    for (const auto& point : all_points) {
+    for (const auto& point : all_points) {//统计在5000个timestamps内，某时刻持续的最多的flow数
         // Started a new flow
-        if (point.second) {
+        if (point.second) {//true->+1
             local_max_num_concurrent_flows++;
         }
         // Ended an existing flow
-        else {
+        else {//false->-1
             assert(local_max_num_concurrent_flows > 0);
             local_max_num_concurrent_flows--;
         }
@@ -244,7 +248,7 @@ TraceMetadata getFlowCounts(const std::unordered_map<std::string,std::pair<size_
 //            global_max_num_concurrent_flows = local_max_num_concurrent_flows;
 //        }
     }
-    assert(local_max_num_concurrent_flows == 0); // Sanity check
+    assert(local_max_num_concurrent_flows == 0); // Sanity check,finally local_max_num_concurrent_flows must equal to 0
     std::cout<<"196 exec"<<std::endl;
     return TraceMetadata{idx_ranges.size(), global_max_num_concurrent_flows};//what the getFlowCounts final returns
 }
