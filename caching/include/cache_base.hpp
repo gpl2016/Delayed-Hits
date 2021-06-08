@@ -27,8 +27,7 @@ namespace caching {
 class BaseCacheSet {
 protected:
     const size_t kNumEntries; // The number of cache entries in this set
-    std::unordered_set<std::string> occupied_entries_set_; // Set of currently
-                                                           // cached flow IDs.
+    std::unordered_set<std::string> occupied_entries_set_; // Set of currently cached flow IDs.
 public:
     BaseCacheSet(const size_t num_entries) : kNumEntries(num_entries) {}
     virtual ~BaseCacheSet() {}
@@ -203,13 +202,12 @@ public:
                  utils::Packet>& processed_packets) {
         packet.setArrivalClock(clk());
 
-        const std::string& key = packet.getFlowId();
+        const std::string& key = packet.getFlowId();//key  i.e. flow_id
         auto queue_iter = packet_queues_.find(key);
-        BaseCacheSet& cache_set = *cache_sets_.at(
-            getCacheIndex(key));
+        BaseCacheSet& cache_set = *cache_sets_.at(getCacheIndex(key));
 
-        // Record arrival of the packet at
-        // the cache and cache-set levels.
+
+        // Record arrival of the packet at the cache and cache-set levels.
         recordPacketArrival(packet);
         cache_set.recordPacketArrival(packet);
 
@@ -314,9 +312,21 @@ public:
      */
     static void benchmark(BaseCache& model, const std::string& trace_fp, const std::
                           string& packets_fp, const size_t num_warmup_cycles) {
-        std::list<utils::Packet> packets; // List of processed packets
+        std::list<utils::Packet> packets; // List of processed packet
+        //utils::Packet
+        /*
+         *  const std::string flow_id_;
+
+    // Housekeeping
+    size_t arrival_clock_ = 0;
+    double total_latency_ = 0;
+    double queueing_delay_ = 0;
+    bool is_finalized_ = false;
+         *
+         * */
         size_t num_total_packets = 0; // Total packet count
         if (!packets_fp.empty()) {
+            //if not empty,do
             std::ofstream file(packets_fp, std::ios::out |
                                            std::ios::trunc);
             // Write the header
@@ -349,7 +359,7 @@ public:
                 model.warmupComplete(); packets.clear();
                 std::cout << "> Warmup complete after "
                           << num_warmup_cycles
-                          << " cycles." << std::endl;
+                          << " cycles." << std::endl;//最初的周期是warmup周期，不能处理数据包，故需要计数后重新再开始
             }
             // Periodically save packets to file
             if (num_total_packets > 0 &&
@@ -415,7 +425,7 @@ public:
                 ("zfactor",     value<size_t>(&z)->required(),                        "Parameter: Z")
                 ("packets",     value<std::string>(&packets_fp)->default_value(""),   "[Optional] Output packets file path")
                 ("csa",         value<size_t>(&set_associativity)->default_value(0),  "[Optional] Parameter: Cache set-associativity")
-                ("warmup",      value<size_t>(&num_warmup_cycles)->default_value(0),  "[Optional] Parameter: Number of cache warm-up cycles");
+                ("warmup", value<size_t>(&num_warmup_cycles)->default_value(0),  "[Optional] Parameter: Number of cache warm-up cycles");
 
             // Parse model parameters
             store(parse_command_line(argc, argv, desc), variables);
