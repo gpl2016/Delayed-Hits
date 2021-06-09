@@ -198,14 +198,13 @@ public:
     /**
      * Processes the parameterized packet.
      */
-    void process(utils::Packet& packet, std::list<
-                 utils::Packet>& processed_packets) {
+    void process(utils::Packet& packet, std::list<utils::Packet>& processed_packets) {
         packet.setArrivalClock(clk());
 
         const std::string& key = packet.getFlowId();//key  i.e. flow_id
         auto queue_iter = packet_queues_.find(key);
         BaseCacheSet& cache_set = *cache_sets_.at(getCacheIndex(key));
-
+        // according to the key/flowid find the cache_set
 
         // Record arrival of the packet at the cache and cache-set levels.
         recordPacketArrival(packet);
@@ -216,8 +215,7 @@ public:
             assert(!cache_set.contains(key));
             memory_entries_.insert(key);
 
-            // Assume that insertions have zero cost.
-            // Insert the new entry into the cache.
+            // Assume that insertions have zero cost.Insert the new entry into the cache.
             if (!kIsPenalizeInsertions) {
                 cache_set.write(key, packet);
             }
@@ -294,12 +292,13 @@ public:
      */
     static void savePackets(std::list<utils::Packet>& packets,
                             const std::string& packets_fp) {
-        if (!packets_fp.empty()) {
+        if (!packets_fp.empty()) {//if packets_fp is a real path argument
             std::ofstream file(packets_fp, std::ios::out |
                                            std::ios::app);
             // Save the raw packets to file
             for (const utils::Packet& packet : packets) {
-                file << packet.getFlowId() << ";"
+                file << static_cast<size_t>(packet.getArrivalClock())<<";"
+                    <<packet.getFlowId() << ";"
                      << static_cast<size_t>(packet.getTotalLatency()) << ";"
                      << static_cast<size_t>(packet.getQueueingDelay()) << std::endl;
             }
@@ -325,8 +324,8 @@ public:
          *
          * */
         size_t num_total_packets = 0; // Total packet count
-        if (!packets_fp.empty()) {
-            //if not empty,do
+        if (!packets_fp.empty()) {//if the path is not empty,because this is optional
+
             std::ofstream file(packets_fp, std::ios::out |
                                            std::ios::trunc);
             // Write the header
@@ -361,11 +360,12 @@ public:
                           << num_warmup_cycles
                           << " cycles." << std::endl;//最初的周期是warmup周期，不能处理数据包，故需要计数后重新再开始
             }
-            // Periodically save packets to file
+            // Periodically save packets to file，
             if (num_total_packets > 0 &&
                 num_total_packets % 5000000 == 0) {
                 if (num_total_packets >= num_warmup_cycles) {
                     savePackets(packets, packets_fp);
+                    std::cout<<"print periodically"<<std::endl;
                 }
                 std::cout << "On packet: " << num_total_packets
                           << ", latency: " << model.getTotalLatency() << std::endl;

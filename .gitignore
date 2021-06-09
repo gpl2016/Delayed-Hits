@@ -1,8 +1,9 @@
 __pycache__/
 *.py[cod]
 .vscode/
-.idea/
+.idea
 build/
 tags
 *.so
+/build
 

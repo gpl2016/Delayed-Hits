@@ -32,7 +32,8 @@ bool DoubleApproxGreaterThanOrEqual(const double a, const double b,
 
 /**
  * Represents a network packet.
- */
+ * Packet->Include the all infomation about the packet
+ *  */
 class Packet {
 private:
     // Flow/Object identifier
