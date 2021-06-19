@@ -192,25 +192,29 @@ public:
         }
 
         // Finally, increment the clock
-        incrementClk();
+        incrementClk();//重要！
     }
 
     /**
      * Processes the parameterized packet.
-     */
+     * the first parameter is a packet for process,the second parameter is the all packets for record the information
+     * 第一个参数是当前处理的这个包，第二个参数的是要存储所有包的信息，是个list
+     *
+     *      */
     void process(utils::Packet& packet, std::list<utils::Packet>& processed_packets) {
         packet.setArrivalClock(clk());
-
+        std::cout<<"clk:arrival"<<clk()<<std::endl;//debug here
         const std::string& key = packet.getFlowId();//key  i.e. flow_id
         auto queue_iter = packet_queues_.find(key);
         BaseCacheSet& cache_set = *cache_sets_.at(getCacheIndex(key));
         // according to the key/flowid find the cache_set
 
+
         // Record arrival of the packet at the cache and cache-set levels.
         recordPacketArrival(packet);
         cache_set.recordPacketArrival(packet);
 
-        // If this packet corresponds to a new flow, allocate its context
+     // If this packet corresponds to a new flow, allocate its context
         if (memory_entries_.find(key) == memory_entries_.end()) {
             assert(!cache_set.contains(key));
             memory_entries_.insert(key);
@@ -222,6 +226,7 @@ public:
         }
         // First, if the flow is cached, process the packet immediately.
         // This implies that the packet queue must be non-existent.
+        //如果这个flow已经被缓存过了且不用继续排队，立即处理
         if (cache_set.contains(key)) {
             assert(queue_iter == packet_queues_.end());
 
@@ -232,15 +237,19 @@ public:
             packet.finalize();
             processed_packets.push_back(packet);
             total_latency_ += packet.getTotalLatency();
+            std::cout<<packet.getTotalLatency()<<std::endl;//0
         }
         // Else, we must either: a) perform a blocking read from memory,
         // or b) wait for an existing blocking read to complete. Insert
         // this packet into the corresponding packet queue.
+        //否则，我们必须从内存执行阻塞读取，或等待现有的阻塞读取完成。将此数据包插入相应的数据包队列。
         else {
             // If this flow's packet queue doesn't yet exist, this is the
             // blocking packet, and its read completes on cycle (clk + z).
-            if (queue_iter == packet_queues_.end()) {
+            if (queue_iter == packet_queues_.end()) {//这个流没出现过
                 size_t target_clk = clk() + kCacheMissLatency - 1;
+
+                std::cout<<"clk:"<<clk()<<" kCacheMissLatency"<<kCacheMissLatency<<std::endl;//10   z?
                 assert(completed_reads_.right.find(key) == completed_reads_.right.end());
                 assert(completed_reads_.left.find(target_clk) == completed_reads_.left.end());
 
@@ -253,7 +262,7 @@ public:
                 packet_queues_[key].push_back(packet);
             }
             // Update the flow's packet queue
-            else {
+            else {//如果队列存在
                 size_t target_clk = completed_reads_.right.at(key);
                 packet.setQueueingDelay(queue_iter->second.size());
                 packet.addLatency(target_clk - clk() + 1);
@@ -262,7 +271,7 @@ public:
                 // Add this packet to the existing flow queue
                 queue_iter->second.push_back(packet);
             }
-            assert(packet.isFinalized()); // Sanity check
+            assert(packet.isFinalized()); // Sanity check,確保當前packet完成
             total_latency_ += packet.getTotalLatency();
         }
         // Process any completed reads
@@ -420,9 +429,12 @@ public:
             // Command-line arguments
             desc.add_options()
                 ("help",        "Prints this message")
-                ("trace",       value<std::string>(&trace_fp)->required(),            "Input trace file path")
-                ("cscale",      value<double>(&c_scale)->required(),                  "Parameter: Cache size (%Concurrent Flows)")
-                ("zfactor",     value<size_t>(&z)->required(),                        "Parameter: Z")
+                //("trace",       value<std::string>(&trace_fp)->required(),            "Input trace file path")
+                ("trace",value<std::string>(&trace_fp)->default_value("/home/liguopeng/forgit/Delayed-Hits/data/trace.csv"),"Input trace file path")
+                    ("cscale",value<double>(&c_scale)->default_value(5),"Parameter: Cache size (%Concurrent Flows)")
+               // ("cscale",      value<double>(&c_scale)->required(),                  "Parameter: Cache size (%Concurrent Flows)")
+                    ("zfactor",     value<size_t>(&z)->default_value(10),                        "Parameter: Z")
+                //("zfactor",     value<size_t>(&z)->required(),                        "Parameter: Z")
                 ("packets",     value<std::string>(&packets_fp)->default_value(""),   "[Optional] Output packets file path")
                 ("csa",         value<size_t>(&set_associativity)->default_value(0),  "[Optional] Parameter: Cache set-associativity")
                 ("warmup", value<size_t>(&num_warmup_cycles)->default_value(0),  "[Optional] Parameter: Number of cache warm-up cycles");
@@ -462,6 +474,7 @@ public:
             static_cast<size_t>(round(cache_size / set_associativity)));
 
         // Debug: Print the cache and trace parameters
+        //
         std::cout << "Parameters: c=" << c_scale << "%, z=" << z << std::endl;
         std::cout << "Total number of flows: " << num_total_flows << std::endl;
         std::cout << "Maximum number of concurrent flows: " << num_cfs << std::endl;
