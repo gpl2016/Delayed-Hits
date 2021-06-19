@@ -107,8 +107,9 @@ public:
             options).allow_unregistered().run(), variables);
 
         bopt::notify(variables);
-        std::string trace_fp = variables.at("trace").as<std::string>();
-
+        std::string trace_fp ;
+        //= variables.at("trace").as<std::string>();
+        trace_fp="/home/liguopeng/forgit/Delayed-Hits/data/trace.csv";
         // Initialize the TraceAnalyzer and the cache sets
         analyzer_ = new utils::TraceAnalyzer(trace_fp);
         for (size_t idx = 0; idx < kMaxNumCacheSets; idx++) {
@@ -138,5 +139,5 @@ public:
 
 // Run default benchmarks
 int main(int argc, char** argv) {
-    BaseCache::defaultBenchmark<BeladyAggregateDelayCache>(argc, argv);
+    BaseCache::defaultBenchmark<BeladyAggregateDelayCache>(argc, argv);//debug here
 }
