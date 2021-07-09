@@ -41,7 +41,7 @@ public:
         if (position_iter != queue_.positions().end()) {
             written_entry = *(position_iter->second);
 
-            // Sanity checks
+            // Sanity checks健全性检查
             assert(contains(key));
             assert(written_entry.isValid());
             assert(written_entry.key() == key);
@@ -56,9 +56,11 @@ public:
             written_entry.toggleValid();
 
             // If required, evict the LRU entry
+            //如果需要，逐出LRU入口     重要
             if (queue_.size() == getNumEntries()) {
                 evicted_entry = queue_.popFront();
                 assert(evicted_entry.isValid()); // Sanity check
+
                 occupied_entries_set_.erase(evicted_entry.key());
             }
 
