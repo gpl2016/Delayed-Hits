@@ -505,7 +505,7 @@ public:
         size_t num_total_flows = flow_counts.num_total_flows;
         size_t num_cfs = flow_counts.num_concurrent_flows;
 
-        // Compute the set associativity and set count
+        // Compute the set associativity and set count  计算
         double cache_size = 2;
         if (set_associativity == 0) { set_associativity = std::max<size_t>(
             1, static_cast<size_t>(round(cache_size)));
