@@ -1,1 +1,1 @@
-build/bin/cache_lru --trace "data/test_data.csv" --cscale 5 --zfactor 1 > 0709shell
+build/bin/cache_lru --trace "data/test_data.csv" --cscale 1 --zfactor 2 > 0711shell

@@ -1,6 +1,6 @@
 271 exec
 196 exec
-Parameters: c=1%, z=1
+Parameters: c=1%, z=3
 Total number of flows: 3
 Maximum number of concurrent flows: 3
 2  2
@@ -11,18 +11,33 @@ Starting trace data/test_data.csv...
 ----------------
 current timestamp:1
 init11
-packet.addLatency(kCacheMissLatency);1
+packet.addLatency(kCacheMissLatency);3
+----------------
+current timestamp:2
+init12
+packet.addLatency(kCacheMissLatency);3
+----------------
+current timestamp:3
+init13
+packet.addLatency(kCacheMissLatency);3
 process_all writeq
+lru _ write
 The update was unsuccessful, create a new entry to insert _key:11
 Update the occupied entries set _key:11
 queue_.size():1
 getNumEntries()2
 11 
 ----------------
-current timestamp:2
-init12
-packet.addLatency(kCacheMissLatency);1
+current timestamp:4
+init11
+lru _ write
+If a corresponding entry exists, update it
+queue_.size():1
+getNumEntries()2
+11 
+if (cache_set.contains(key))0
 process_all writeq
+lru _ write
 The update was unsuccessful, create a new entry to insert _key:12
 Update the occupied entries set _key:12
 queue_.size():2
@@ -30,40 +45,29 @@ getNumEntries()2
 11 
 12 
 ----------------
-current timestamp:3
-init13
-packet.addLatency(kCacheMissLatency);1
-process_all writeq
-The update was unsuccessful, create a new entry to insert _key:13
-evicted_entry.key():11
-Update the occupied entries set _key:13
+current timestamp:5
+init11
+lru _ write
+If a corresponding entry exists, update it
 queue_.size():2
 getNumEntries()2
 12 
-13 
-----------------
-current timestamp:4
-init11
-packet.addLatency(kCacheMissLatency);1
-process_all writeq
-The update was unsuccessful, create a new entry to insert _key:11
-evicted_entry.key():12
-Update the occupied entries set _key:11
-queue_.size():2
-getNumEntries()2
-13 
-11 
-----------------
-current timestamp:5
-init11
-queue_.size():2
-getNumEntries()2
-13 
 11 
 if (cache_set.contains(key))0
+process_all writeq
+lru _ write
+The update was unsuccessful, create a new entry to insert _key:13
+evicted_entry.key():12
+Update the occupied entries set _key:13
+queue_.size():2
+getNumEntries()2
+11 
+13 
 ----------------
 current timestamp:6
 init11
+lru _ write
+If a corresponding entry exists, update it
 queue_.size():2
 getNumEntries()2
 13 
@@ -72,6 +76,8 @@ if (cache_set.contains(key))0
 ----------------
 current timestamp:7
 init13
+lru _ write
+If a corresponding entry exists, update it
 queue_.size():2
 getNumEntries()2
 11 
@@ -80,37 +86,38 @@ if (cache_set.contains(key))0
 ----------------
 current timestamp:8
 init12
-packet.addLatency(kCacheMissLatency);1
-process_all writeq
-The update was unsuccessful, create a new entry to insert _key:12
-evicted_entry.key():11
-Update the occupied entries set _key:12
-queue_.size():2
-getNumEntries()2
-13 
-12 
+packet.addLatency(kCacheMissLatency);3
 ----------------
 current timestamp:9
 init11
-packet.addLatency(kCacheMissLatency);1
-process_all writeq
-The update was unsuccessful, create a new entry to insert _key:11
-evicted_entry.key():13
-Update the occupied entries set _key:11
+lru _ write
+If a corresponding entry exists, update it
 queue_.size():2
 getNumEntries()2
-12 
+13 
 11 
+if (cache_set.contains(key))0
 ----------------
 current timestamp:10
 init11
+lru _ write
+If a corresponding entry exists, update it
 queue_.size():2
 getNumEntries()2
-12 
+13 
 11 
 if (cache_set.contains(key))0
-11;12;13;11;11;11;13;12;11;11;
+process_all writeq
+lru _ write
+The update was unsuccessful, create a new entry to insert _key:12
+evicted_entry.key():13
+Update the occupied entries set _key:12
+queue_.size():2
+getNumEntries()2
+11 
+12 
+11;11;12;11;13;11;13;11;11;12;
 Total number of packets: 10
-Total latency is: 6
-Average latency is: 0.60
+Total latency is: 12
+Average latency is: 1.20
 
