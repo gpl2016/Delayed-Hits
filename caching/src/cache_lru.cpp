@@ -23,6 +23,72 @@ public:
     LRUCacheSet(const size_t num_entries) : BaseCacheSet(num_entries) {}
     virtual ~LRUCacheSet() {}
 
+
+    virtual CacheEntry
+    writehalf(const std::string& key, const utils::Packet& packet) override {
+        SUPPRESS_UNUSED_WARNING(packet);
+        CacheEntry written_entry;
+        CacheEntry evicted_entry;
+        std::cout<<"lru _  writehalf"<<std::endl;
+        // If a corresponding entry exists, update it
+        auto position_iter = queue_.positions().find(key);//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
+        //std::unordered_map<std::string, Iterator>& positions()
+        if (position_iter != queue_.positions().end()) {
+            std::cout<<"If a corresponding entry exists, update it"<<std::endl;
+            written_entry = *(position_iter->second);//position_iter是迭代器
+
+            // Sanity checks健全性检查
+            assert(contains(key));
+            assert(written_entry.isValid());
+            assert(written_entry.key() == key);
+            // If the read was successful, the corresponding entry is
+            // the MRU element in the cache. Remove it from the queue.
+            queue_.erase(position_iter);
+        }
+            // The update was unsuccessful, create a new entry to insert
+        else {
+            std::cout<<"The update was unsuccessful, create a new entry to insert _key:"<<key<<std::endl;
+            written_entry.update(key);
+            written_entry.toggleValid();
+
+            // If required, evict the LRU entry
+            //如果需要，逐出LRU入口     重要
+//            std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
+//            std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+            if (queue_.size() > getNumEntries()-1) {
+                evicted_entry = queue_.popFront();
+                assert(evicted_entry.isValid()); // Sanity check
+                std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<std::endl;
+                occupied_entries_set_.erase(evicted_entry.key());
+            }
+
+            // Update the occupied entries set
+            occupied_entries_set_.insert(key);
+            std::cout<<"Update the occupied entries set _key:"<<key<<std::endl;
+        }
+
+
+        // Finally, (re-)insert the written entry at the back
+        queue_.insertBack(written_entry);
+        std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
+        std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+        //想输出cache中的内容
+        std::list<CacheEntry>::iterator p1;
+
+        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
+            std::cout<<(*p1).key() <<" "<<std::endl;
+        }
+        // std::cout<<queue_.entries();
+        // Sanity checks
+        assert(occupied_entries_set_.size() <= getNumEntries());
+        assert(occupied_entries_set_.size() == queue_.size());
+        return written_entry;
+    }
+
+
+
+
+
     /**
      * Simulates a cache write.
      *
@@ -113,9 +179,9 @@ public:
 class LRUCache : public BaseCache {
 public:
     LRUCache(const size_t miss_latency, const size_t cache_set_associativity, const size_t
-             num_cache_sets, const bool penalize_insertions, const HashType hash_type, int
+    num_cache_sets, const bool penalize_insertions, const HashType hash_type, int
              argc, char** argv) : BaseCache(miss_latency, cache_set_associativity,
-             num_cache_sets, penalize_insertions, hash_type) {
+                                            num_cache_sets, penalize_insertions, hash_type) {
         SUPPRESS_UNUSED_WARNING(argc);
         SUPPRESS_UNUSED_WARNING(argv);
 

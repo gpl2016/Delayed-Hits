@@ -1,3 +1,6 @@
+note:
+    cache_size与associate的大小是有关的，其实初始化时只要不指定associate，的大小也就是cache_size的大小了
+
 1. 从cpp文件中的main函数BaseCache::defaultBenchmark<LRUCache>(argc, argv);
 
 2. 调用到cache_base中的defaultBenchmark

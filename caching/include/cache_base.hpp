@@ -29,7 +29,7 @@ protected:
     const size_t kNumEntries; // The number of cache entries in this set
     std::unordered_set<std::string> occupied_entries_set_; // Set of currently cached flow IDs.当前序号缓存的flow id集合，也就是已经缓存的
 public:
-    BaseCacheSet(const size_t num_entries) : kNumEntries(num_entries) {std::cout<<num_entries<<"  "<<kNumEntries<<std::endl;}//每个缓存里面的大小  但是一直没找到什么时候赋值的啊  ？？？
+    BaseCacheSet(const size_t num_entries) : kNumEntries(num_entries) {std::cout<<"cache size"<<num_entries<<"  "<<kNumEntries<<std::endl;}//每个缓存里面的大小  但是一直没找到什么时候赋值的啊  ？？？
     //最后的赋值是cache size
     virtual ~BaseCacheSet() {}
 
@@ -60,6 +60,8 @@ public:
     virtual CacheEntry
     write(const std::string& key, const utils::Packet& packet) = 0;
 
+    virtual CacheEntry
+    writehalf(const std::string& key, const utils::Packet& packet) = 0;
     /**
      * Simulates a sequence of cache writes for a particular flow's packet queue.
      * Invoking this method should be functionally equivalent to invoking write()
@@ -88,11 +90,11 @@ class BaseCache {
 protected:
     const size_t kCacheMissLatency;         // Cost (in cycles) of an L1 cache miss
     const size_t kMaxNumCacheSets;          // Maximum number of sets in the L1 cache
-    const size_t kMaxNumCacheEntries=2;       // Maximum number of entries in the L1 cache
+    const size_t kMaxNumCacheEntries;       // Maximum number of entries in the L1 cache
     const size_t kCacheSetAssociativity;    // Set-associativity of the L1 cache
     const size_t kIsPenalizeInsertions;     // Whether insertions should incur an L1 cache miss插入是否应导致一级缓存未命中
     const HashFamily kHashFamily;           // A HashFamily instance
-
+    //const size_t num_cache_entries;
     size_t clk_ = 0; // Time in clock cycles
     size_t total_latency_ = 0; // Total packet latency
     std::vector<BaseCacheSet*> cache_sets_; // Fixed-sized array of CacheSet instances 固定大小的缓存集实例数组
@@ -106,12 +108,12 @@ protected:
     ////包含零个或多个等待处理的数据包。
 public:
     BaseCache(const size_t miss_latency, const size_t cache_set_associativity, const size_t
-              num_cache_sets, const bool penalize_insertions, const HashType hash_type):
-              kCacheMissLatency(miss_latency), kMaxNumCacheSets(num_cache_sets),
-              kMaxNumCacheEntries(2),
-              kCacheSetAssociativity(cache_set_associativity),
-              kIsPenalizeInsertions(penalize_insertions),
-              kHashFamily(1, hash_type) {}
+    num_cache_sets, const bool penalize_insertions, const HashType hash_type):
+            kCacheMissLatency(miss_latency), kMaxNumCacheSets(num_cache_sets),
+            kMaxNumCacheEntries(cache_set_associativity),
+            kCacheSetAssociativity(cache_set_associativity),
+            kIsPenalizeInsertions(penalize_insertions),
+            kHashFamily(1, hash_type) {}
 
     virtual ~BaseCache() {
         // Deallocate the cache sets
@@ -238,12 +240,11 @@ public:
         if (memory_entries_.find(key) == memory_entries_.end()) {
             assert(!cache_set.contains(key));
             memory_entries_.insert(key);
-
             // Assume that insertions have zero cost.Insert the new entry into the cache.假设插入具有零成本。将新条目插入缓存。
             //但是一般kIsPenalizeInsertions=true啊
-            if (!kIsPenalizeInsertions) {
-                cache_set.write(key, packet);
-            }
+//            if (!kIsPenalizeInsertions) {
+//                cache_set.write(key, packet);
+//            }
         }
         // First, if the flow is cached, process the packet immediately.
         // This implies that the packet queue must be non-existent.
@@ -279,6 +280,7 @@ public:
                 completed_reads_.insert(boost::bimap<size_t, std::string>::value_type(target_clk, key));//插入阻塞的，target_clk和待处理的key
                 packet.addLatency(kCacheMissLatency);
                 std::cout<<"packet.addLatency(kCacheMissLatency);"<<kCacheMissLatency<<std::endl;//
+                cache_set.writehalf(key,packet);
                 packet.finalize();
 
                 // Initialize a new queue for this flow
@@ -370,7 +372,7 @@ public:
                                            std::ios::trunc);
             // Write the header
 
-            file << model.name() << ";" << model.kCacheSetAssociativity << ";"
+            file << model.name() <<  ";"
                  << model.kMaxNumCacheSets << ";" << model.kMaxNumCacheEntries
                  << std::endl;
         }
@@ -396,12 +398,12 @@ public:
                 std::getline(linestream, flow_id, ';');
             }
             // Cache warmup completed
-            if (num_total_packets == num_warmup_cycles) {
-                model.warmupComplete(); packets.clear();
-                std::cout << "> Warmup complete after "
-                         << num_warmup_cycles
-                          << " cycles." << std::endl;//最初的周期是warmup周期，不能处理数据包，故需要计数后重新再开始
-            }
+//            if (num_total_packets == num_warmup_cycles) {
+//                model.warmupComplete(); packets.clear();
+//                std::cout << "> Warmup complete after "
+//                         << num_warmup_cycles
+//                          << " cycles." << std::endl;//最初的周期是warmup周期，不能处理数据包，故需要计数后重新再开始
+//            }
             // Periodically save packets to file，
             if (num_total_packets > 0 &&
                 num_total_packets % 5000000 == 0) {
@@ -456,6 +458,8 @@ public:
         // Parameters
         size_t z;
         double c_scale;
+        double  cache_size ;
+        double num_cache_sets;
         std::string trace_fp;
         std::string packets_fp;
         size_t set_associativity;
@@ -465,19 +469,18 @@ public:
         variables_map variables;
         options_description desc{"A caching simulator that models Delayed Hits"};
 
-        try {
+        try {//其实只需要  trace，cachesize，zfactor（甚至不需要），
             // Command-line arguments
             desc.add_options()
-                ("help",        "Prints this message")
-                //("trace",       value<std::string>(&trace_fp)->required(),            "Input trace file path")
-                ("trace",value<std::string>(&trace_fp)->default_value("/home/user/liguopeng/delay_remote/data/test_data.csv"),"Input trace file path")
-                    ("cscale",value<double>(&c_scale)->default_value(0),"Parameter: Cache size (%Concurrent Flows)")
-               // ("cscale",      value<double>(&c_scale)->required(),                  "Parameter: Cache size (%Concurrent Flows)")
-                    ("zfactor",     value<size_t>(&z)->default_value(1),                        "Parameter: Z")
-                //("zfactor",     value<size_t>(&z)->required(),                        "Parameter: Z")
-                ("packets",     value<std::string>(&packets_fp)->default_value("/home/user/liguopeng/delay_remote/out.txt"),   "[Optional] Output packets file path")
-                ("csa",         value<size_t>(&set_associativity)->default_value(0),  "[Optional] Parameter: Cache set-associativity")
-                ("warmup", value<size_t>(&num_warmup_cycles)->default_value(0),  "[Optional] Parameter: Number of cache warm-up cycles");
+                    ("help",        "Prints this message")
+                    ("trace",value<std::string>(&trace_fp)->required(),"Input trace file path")
+                    ("k",value<double>(&cache_size)->required(),"Parameter,k,cache size")
+                    ("zfactor",value<size_t>(&z)->required(),"Parameter,z,zfactor")
+
+                    ("cscale",value<double>(&c_scale)->default_value(2),"Parameter: Cache size (%Concurrent Flows)")
+                    ("packets",     value<std::string>(&packets_fp)->default_value(""),   "[Optional] Output packets file path")
+                    ("associativity",         value<size_t>(&set_associativity)->default_value(0),  "[Optional] Parameter: Cache set-associativity")
+                    ("warmup",      value<size_t>(&num_warmup_cycles)->default_value(0),  "[Optional] Parameter: Number of cache warm-up cycles");
 
             // Parse model parameters
             store(parse_command_line(argc, argv, desc), variables);
@@ -501,40 +504,33 @@ public:
             return;
         }
 
-        const auto flow_counts = utils::getFlowCounts(trace_fp);
-        size_t num_total_flows = flow_counts.num_total_flows;
-        size_t num_cfs = flow_counts.num_concurrent_flows;
 
-        // Compute the set associativity and set count  计算
-        double cache_size = 2;
         if (set_associativity == 0) { set_associativity = std::max<size_t>(
             1, static_cast<size_t>(round(cache_size)));
         }
 
-        size_t num_cache_sets = std::max<size_t>(1,static_cast<size_t>(round(cache_size / set_associativity)));
-        //num_cache_sets=2;
-        //set_associativity=0;
-        //num_cache_sets=2;
+
 
 
         num_cache_sets=1;
         // Debug: Print the cache and trace parameters
-        //
-        std::cout << "Parameters: c=" << c_scale << "%, z=" << z << std::endl;
-        std::cout << "Total number of flows: " << num_total_flows << std::endl;
-        std::cout << "Maximum number of concurrent flows: " << num_cfs << std::endl;
+
+        std::cout << "CacheNumbers" << num_cache_sets <<std::endl;
+        std::cout << "Parameters: k=" << cache_size <<std::endl;
+        std::cout << "Parameters: z=" << z<<std::endl;
+
 
         // Instantiate the model
         T model(z, set_associativity, num_cache_sets, true,
                 HashType::MURMUR_HASH, argc, argv);
 
         // Debug: Print the model parameters
-        std::cout << model.name() << ": kCacheSetAssociativity=" << model.kCacheSetAssociativity
+        std::cout << model.name()
                   <<   ", kMaxNumCacheSets=" << model.kMaxNumCacheSets << ", kMaxNumCacheEntries="
                   << model.kMaxNumCacheEntries << std::endl;
 
         std::cout << "Starting trace " << trace_fp <<  "..." << std::endl << std::endl;
-        BaseCache::benchmark(model, trace_fp, packets_fp, num_warmup_cycles);
+        BaseCache::benchmark(model, trace_fp,  packets_fp, num_warmup_cycles);
     }
 };
 
