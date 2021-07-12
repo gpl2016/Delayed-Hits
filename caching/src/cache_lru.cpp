@@ -108,6 +108,7 @@ public:
         // If a corresponding entry exists, update it
         auto position_iter = queue_.positions().find(key);//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
         //std::unordered_map<std::string, Iterator>& positions()
+        //std::list<T>::iterator Iterator;
         if (position_iter != queue_.positions().end()) {
             std::cout<<"If a corresponding entry exists, update it"<<std::endl;
             written_entry = *(position_iter->second);//position_iter是迭代器

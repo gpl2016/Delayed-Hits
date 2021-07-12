@@ -83,7 +83,7 @@ public:
         assert(positions_.find(key) == positions_.end());
 
         entries_.push_back(entry);
-        positions_[key] = std::prev(entries_.end());
+        positions_[key] = std::prev(entries_.end());//n 为指定新迭代器距离 it 的距离，默认值为 1,默认是前一个
     }
 };
 

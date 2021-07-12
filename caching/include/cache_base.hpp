@@ -36,8 +36,7 @@ public:
 
     // Membership test (internal use only)
     bool contains(const std::string& flow_id) const {
-        return (occupied_entries_set_.find(flow_id) !=
-                occupied_entries_set_.end());
+        return (occupied_entries_set_.find(flow_id) !=occupied_entries_set_.end());
     }
     /**
      * Returns the number of cache entries in this set
