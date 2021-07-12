@@ -33,26 +33,28 @@ public:
      * @param packet The packet corresponding to this write request.
      * @return The written CacheEntry instance.
      */
-    virtual CacheEntry
+    CacheEntry
     writehalf(const std::string& key, const utils::Packet& packet) override {
         SUPPRESS_UNUSED_WARNING(packet);
         CacheEntry written_entry;
         CacheEntry evicted_entry;
         std::cout<<"lru _ my_ writehalf"<<std::endl;
         // If a corresponding entry exists, update it
-        auto position_iter = queue_.positions().find(key);//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
+        auto position_iter = queue_.positions().find(key);
+        //queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
         //std::unordered_map<std::string, Iterator>& positions()
         if (position_iter != queue_.positions().end()) {
             std::cout<<"If a corresponding entry exists, update it"<<std::endl;
             written_entry = *(position_iter->second);//position_iter是迭代器
-
+            //position_iter->second也是个迭代器，std::list<CacheEntry>::iterator，再取*就是内容了，就是一个CacheEntry
             // Sanity checks健全性检查
             assert(contains(key));
             assert(written_entry.isValid());
             assert(written_entry.key() == key);
             // If the read was successful, the corresponding entry is
             // the MRU element in the cache. Remove it from the queue.
-            queue_.erase(position_iter);
+            queue_.erase(position_iter);//在std::list<T> entries_; 中删掉当前entry，在positions_中删掉当前position_iter（是一个unordered map
+            // ）为了之后再插入，更新做准备？
         }
             // The update was unsuccessful, create a new entry going to insert
         else {
@@ -89,6 +91,8 @@ public:
         for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
             std::cout<<(*p1).key() <<" "<<std::endl;
         }
+
+
         // std::cout<<queue_.entries();
         // Sanity checks
         assert(occupied_entries_set_.size() <= getNumEntries());
@@ -168,6 +172,7 @@ public:
         }
         // std::cout<<queue_.entries();
         // Sanity checks
+
         assert(occupied_entries_set_.size() <= getNumEntries());
         assert(occupied_entries_set_.size() == queue_.size());
         return written_entry;
@@ -201,7 +206,7 @@ public:
         SUPPRESS_UNUSED_WARNING(argc);
         SUPPRESS_UNUSED_WARNING(argv);
 
-        // Initialize the cache sets
+        // Initialize the cache sets  have kCacheSetAssociativity,也就是cache size个slot
         for (size_t idx = 0; idx < kMaxNumCacheSets; idx++) {
             cache_sets_.push_back(new LRUCacheSet(kCacheSetAssociativity));
         }

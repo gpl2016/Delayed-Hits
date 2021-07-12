@@ -28,6 +28,7 @@ class BaseCacheSet {
 protected:
     const size_t kNumEntries; // The number of cache entries in this set
     std::unordered_set<std::string> occupied_entries_set_; // Set of currently cached flow IDs.当前序号缓存的flow id集合，也就是已经缓存的
+    std::unordered_map<std::string, std::string> id_status_;//
 public:
     BaseCacheSet(const size_t num_entries) : kNumEntries(num_entries) {std::cout<<"cache size"<<num_entries<<"  "<<kNumEntries<<std::endl;}//每个缓存里面的大小  但是一直没找到什么时候赋值的啊  ？？？
     //最后的赋值是cache size
@@ -62,6 +63,7 @@ public:
 
     virtual CacheEntry
     writehalf(const std::string& key, const utils::Packet& packet) = 0;
+
     /**
      * Simulates a sequence of cache writes for a particular flow's packet queue.
      * Invoking this method should be functionally equivalent to invoking write()
@@ -250,7 +252,7 @@ public:
         // This implies that the packet queue must be non-existent.
         //如果这个flow已经被缓存过了且不用继续排队，立即处理
         if (cache_set.contains(key)) {
-            assert(queue_iter == packet_queues_.end());
+            assert(queue_iter == packet_queues_.end());//确定没在排队
 
             // Note: We currently assume a
             // zero latency cost for hits.
@@ -280,7 +282,7 @@ public:
                 completed_reads_.insert(boost::bimap<size_t, std::string>::value_type(target_clk, key));//插入阻塞的，target_clk和待处理的key
                 packet.addLatency(kCacheMissLatency);
                 std::cout<<"packet.addLatency(kCacheMissLatency);"<<kCacheMissLatency<<std::endl;//
-                cache_set.writehalf(key,packet);
+               // cache_set.writehalf(key,packet);
                 packet.finalize();
 
                 // Initialize a new queue for this flow

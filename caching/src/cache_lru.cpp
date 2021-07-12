@@ -78,6 +78,9 @@ public:
         for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
             std::cout<<(*p1).key() <<" "<<std::endl;
         }
+
+
+
         // std::cout<<queue_.entries();
         // Sanity checks
         assert(occupied_entries_set_.size() <= getNumEntries());
@@ -149,6 +152,11 @@ public:
 
         for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
            std::cout<<(*p1).key() <<" "<<std::endl;
+        }
+
+        std::unordered_set<std::string > :: iterator  p2;
+        for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
+            std::cout<<"occupied_entries_set_ output:"<<*(p2)<<std::endl;
         }
        // std::cout<<queue_.entries();
         // Sanity checks

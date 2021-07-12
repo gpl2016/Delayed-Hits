@@ -1,6 +1,9 @@
-note:
-    cache_size与associate的大小是有关的，其实初始化时只要不指定associate，的大小也就是cache_size的大小了
+[TOC]
 
+## note:
+cache_size与associate的大小是有关的，其实初始化时只要不指定associate，的大小也就是cache_size的大小了，其实初始化时只要不指定associate，的大小也就是cache_size的大小了
+
+## 一些流程
 1. 从cpp文件中的main函数BaseCache::defaultBenchmark<LRUCache>(argc, argv);
 
 2. 调用到cache_base中的defaultBenchmark
@@ -75,9 +78,9 @@ note:
 
         *  如果不存在于正在请求该文件的队列
 
-        		1. target_clk,到达target_clk，文件才能回来，这里有问题，他这到了target_clk才驱逐
-          		2. 向completed_reads_这个bimap中，插入target_clk和key(flow_id)_
-          		3. _将packet加入packet_queues_[key]这个list中，待处理队列
+        	1. target_clk,到达target_clk，文件才能回来，这里有问题，他这到了target_clk才驱逐
+          2. 向completed_reads_这个bimap中，插入target_clk和key(flow_id)_
+          3. _将packet加入packet_queues_[key]这个list中，待处理队列
 
         * 如果存在于正在请求的该文件的队列中
           * 找到target_clk
@@ -101,10 +104,71 @@ note:
 5. processAll
    * 流程
      * 根据当前clk找到待处理的数据包们，返回的completed_read里面应该有待处理的包们
-     * 
+     * 调用writeq(queue)，处理对应的队列， 就是在此前，已经来过好几个对于key的请求了，一直都没处理，都是在z时间之内的，所以这次可以直接处理好几个请求std::list\<utils::Packet\>& queue = packet_queues_.at(key);
+     * 最后进行一些清理的工作以及clk()+1
+     *  queue.clear();
+                   packet_queues_.erase(key);
+                   completed_reads_.left.erase(completed_read);
+
+## LRU和common中的一些东西
+
+### 相关类
+
+- LRUQueue
+
+  **std::list<T> entries_;** 	
+
+  
+
+  **positions_,**是一个unordered_map，key是string，value是Iterator，其中Iterator是std::list<T>::iterator，即一个list的迭代器
+
+  
+
+  ```c++
+  typedef typename std::list<T>::iterator Iterator;
+  typedef typename std::unordered_map<std::string, Iterator>::iterator PositionIterator;
+  std::unordered_map<std::string, Iterator> positions_; // A dict mapping keys to iterators
+  std::list<T> entries_; // An ordered list of T instances. The list is ordered such that, at
+   // any time, the element at the front of the queue is the LRU entry.
+  
+  const std::string& getKey(const T& entry) const { return entry.key(); }
+  ```
+
+**positions()**这个函数，返回positions_这个unordered_map，
+
+在lru的cpp文件中，auto position_iter = queue_.positions().find(key);
+//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
+
+
+
+​	**std::unordered_set\<std::string\> occupied_entries_set_**   存的都是，已经在cache中的key，也就是flowid，是set，去重了    **std::unordered_set\<std::string\> occupied_entries_set_**   是cache_base中查询是否在缓存中真正查询得地方
 
 
 
 
 
+- CacheEntry//
+
+  ​	key
+
+  ​	bool is_valid
+
+  ​	void update(const std::string& key) { key_ = key; }
+
+### 相关变量
+
+- ```c++
+  LRUQueue<CacheEntry> queue_
+  ```
+
+  queue_是一个对象，T是CacheEntry，
+  
+
+- ```c++
+  occupied_entries_set_
+  ```
+
+- 
+
+- 
 
