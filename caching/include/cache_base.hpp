@@ -79,6 +79,7 @@ public:
         CacheEntry written_entry;
         for (const auto& packet : queue) {
             written_entry = write(packet.getFlowId(), packet);
+            std::cout<<"writeq:"<<packet.getFlowId()<<std::endl;
         }
         return written_entry;
     }
@@ -183,7 +184,8 @@ public:
          * */
         auto completed_read = completed_reads_.left.find(clk());//找到当前时刻待处理的包
         //双向map left就是key找value，right就是value找key
-        if (completed_read != completed_reads_.left.end()) {
+        if (completed_read != completed_reads_.left.end()) {//如果要是为了去适应 同一个时刻来多个请求  还得修改成循环了，这里假设一个时刻来一个包
+            //所以，到了target时刻的话，也只可能是处理一种key，而不是多种
             const std::string& key = completed_read->second;//left.second就是得到value   right.second就是得到key？
             std::list<utils::Packet>& queue = packet_queues_.at(key);//获取当前key待处理的队列     就是在此前，已经来过好几个对于key的请求了，一直都没处理，都是在
             //z时间之内的，所以这次可以直接处理好几个请求
@@ -202,7 +204,7 @@ public:
             //processed_packets是输入的
 
             processed_packets.insert(processed_packets.end(),
-                                     queue.begin(), queue.end());
+                                     queue.begin(), queue.end());//insert是insert到指定位置，pushback是插入列表末尾
 
             // Purge the queue, as well as the bidict mapping  清除队列以及bidict映射
             queue.clear();
@@ -290,7 +292,7 @@ public:
             // Update the flow's packet queue
             else {//如果队列存在
                 size_t target_clk = completed_reads_.right.at(key);
-                packet.setQueueingDelay(queue_iter->second.size());//排队延迟
+                //packet.setQueueingDelay(queue_iter->second.size());//排队延迟
                 packet.addLatency(target_clk - clk() + 1);
                 packet.finalize();
 

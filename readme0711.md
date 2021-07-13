@@ -3,6 +3,7 @@
 ## note:
 cache_size与associate的大小是有关的，其实初始化时只要不指定associate，的大小也就是cache_size的大小了，其实初始化时只要不指定associate，的大小也就是cache_size的大小了
 
+processall以及读入文件的时候//如果要是为了去适应 同一个时刻来多个请求  还得修改成循环了，这里假设一个时刻来一个包，所以，到了target时刻的话，也只可能是处理一种key，而不是多种
 ## 一些流程
 1. 从cpp文件中的main函数BaseCache::defaultBenchmark<LRUCache>(argc, argv);
 

@@ -16,6 +16,7 @@ int main() {
         test_map.erase(key[0]);
     test_map.insert({key[0],"occupy"});
     test_map.insert({key[1],"in"});
+
     for(auto &p:test_map)
         cout<<p.first<<" "<<p.second<<endl;
 }
