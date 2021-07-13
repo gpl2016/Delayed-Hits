@@ -82,7 +82,7 @@ public:
 
         // Finally, (re-)insert the written entry at the back
         //这里不能执行，没有真正的insert，只是留个位置,queue_.insertBack(written_entry);
-        queue_half.insertBack(written_entry);//但在这里插入，可以更新lru队列，满足替换的希求
+        queue_half.insertBack(written_entry);//但在这里插入，可以更新lru队列，满足替换的需求
         std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
         std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
         //想输出cache中的内容

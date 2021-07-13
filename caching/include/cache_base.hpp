@@ -28,7 +28,7 @@ class BaseCacheSet {
 protected:
     const size_t kNumEntries; // The number of cache entries in this set
     std::unordered_set<std::string> occupied_entries_set_; // Set of currently cached flow IDs.当前序号缓存的flow id集合，也就是已经缓存的
-    std::unordered_map<std::string, std::string> id_status_;//
+    std::unordered_map<std::string ,std::string >id_status_;
 public:
     BaseCacheSet(const size_t num_entries) : kNumEntries(num_entries) {std::cout<<"cache size"<<num_entries<<"  "<<kNumEntries<<std::endl;}//每个缓存里面的大小  但是一直没找到什么时候赋值的啊  ？？？
     //最后的赋值是cache size
@@ -38,6 +38,57 @@ public:
     bool contains(const std::string& flow_id) const {
         return (occupied_entries_set_.find(flow_id) !=occupied_entries_set_.end());
     }
+
+    std::string getStatus(const std::string& flow_id) const{
+        if(id_status_.count(flow_id)==0)
+            return "out";
+        else
+        return id_status_.find(flow_id)->second;
+    }
+
+    bool setIntoOut(const  std::string & flow_id){
+        assert(id_status_.find(flow_id)->second=="in");
+        id_status_.erase(flow_id);
+        return id_status_.insert({flow_id,"out"}).second;
+
+    }
+    bool setOuttoFetching(const  std::string & flow_id){
+        assert(id_status_.find(flow_id)->second=="out"||id_status_.count(flow_id)==0);
+        id_status_.erase(flow_id);
+        return id_status_.insert({flow_id,"fetching"}).second;
+
+    }
+
+    bool setOuttoIn(const  std::string & flow_id){
+        assert(id_status_.find(flow_id)->second=="out"||id_status_.count(flow_id)==0);
+        id_status_.erase(flow_id);
+        return id_status_.insert({flow_id,"in"}).second;
+
+    }
+
+    bool setFetchingtoOut(const  std::string & flow_id){
+        assert(id_status_.find(flow_id)->second=="fetching");
+        id_status_.erase(flow_id);
+        return id_status_.insert({flow_id,"out"}).second;
+
+    }
+
+    bool setFetchingtoIn(const  std::string & flow_id){
+        assert(id_status_.find(flow_id)->second=="fetching");
+        id_status_.erase(flow_id);
+        return id_status_.insert({flow_id,"in"}).second;
+
+    }
+
+
+
+    bool setStatus(const std::string&flowid,std::string stat){
+        if(id_status_.find(flowid)!=id_status_.end())
+            id_status_.erase(flowid);
+        return id_status_.insert({flowid,stat}).second;
+
+    }
+
     /**
      * Returns the number of cache entries in this set
      */
@@ -96,11 +147,13 @@ protected:
     const size_t kCacheSetAssociativity;    // Set-associativity of the L1 cache
     const size_t kIsPenalizeInsertions;     // Whether insertions should incur an L1 cache miss插入是否应导致一级缓存未命中
     const HashFamily kHashFamily;           // A HashFamily instance
+
     //const size_t num_cache_entries;
     size_t clk_ = 0; // Time in clock cycles
     size_t total_latency_ = 0; // Total packet latency
     std::vector<BaseCacheSet*> cache_sets_; // Fixed-sized array of CacheSet instances 固定大小的缓存集实例数组
     std::unordered_set<std::string> memory_entries_; // Set of keys in the global store
+
     boost::bimap<size_t, std::string> completed_reads_; // A dictionary mapping clk values to the keys whose blocking reads complete on that cycle.
     //将clk值映射到其阻塞读取在该循环中完成的键的字典。
     std::unordered_map<std::string, std::list<utils::Packet>>
@@ -189,6 +242,7 @@ public:
             const std::string& key = completed_read->second;//left.second就是得到value   right.second就是得到key？
             std::list<utils::Packet>& queue = packet_queues_.at(key);//获取当前key待处理的队列     就是在此前，已经来过好几个对于key的请求了，一直都没处理，都是在
             //z时间之内的，所以这次可以直接处理好几个请求
+
             assert(!queue.empty()); // Sanity check: Queue may not be empty
 
             // Fetch the cache set corresponding to this key
@@ -198,6 +252,7 @@ public:
             // Sanity checks
             assert(!cache_set.contains(key));
             assert(queue.front().getTotalLatency() == kCacheMissLatency);
+            assert(cache_set.getStatus(key)=="fetching");
             std::cout<<"process_all writeq"<<std::endl;
             // Commit the queued entries
             cache_set.writeq(queue);//处理队列  主要就是用write去调用的各种算法  虚函数  继承后实现
@@ -242,6 +297,8 @@ public:
      //如果这个包对应于一个新的流，分配它的上下文
         if (memory_entries_.find(key) == memory_entries_.end()) {
             assert(!cache_set.contains(key));
+            assert(cache_set.getStatus(key)=="out");
+            //assert(cache_set.get_Status(key)!="in"&&cache_set.get_Status(key)!="occupy");
             memory_entries_.insert(key);
             // Assume that insertions have zero cost.Insert the new entry into the cache.假设插入具有零成本。将新条目插入缓存。
             //但是一般kIsPenalizeInsertions=true啊
@@ -254,7 +311,9 @@ public:
         //如果这个flow已经被缓存过了且不用继续排队，立即处理
         if (cache_set.contains(key)) {
             assert(queue_iter == packet_queues_.end());//确定没在排队
+            assert(cache_set.getStatus(key)=="in");
 
+ //           assert(cache_set.get_Status(key)=="in");
             // Note: We currently assume a
             // zero latency cost for hits.
 
@@ -272,7 +331,9 @@ public:
         else {
             // If this flow's packet queue doesn't yet exist, this is the
             // blocking packet, and its read completes on cycle (clk + z).
-            if (queue_iter == packet_queues_.end()) {//这个流没出现过
+            if (queue_iter == packet_queues_.end()&&cache_set.getStatus(key)=="out") {//这个流没出现过,
+               // assert(cache_set.get_Status(key)!="in"&&cache_set.get_Status(key)!="fetching");
+                cache_set.setStatus(key,"fetching");
                 size_t target_clk = clk() + kCacheMissLatency -1;
                 //这个流没出现过,最快也是在target_clk后才能缓存过来，kCacheMissLatency=z
                 //kCacheMissLatency就是z
@@ -283,17 +344,19 @@ public:
                 completed_reads_.insert(boost::bimap<size_t, std::string>::value_type(target_clk, key));//插入阻塞的，target_clk和待处理的key
                 packet.addLatency(kCacheMissLatency);
                 std::cout<<"packet.addLatency(kCacheMissLatency);"<<kCacheMissLatency<<std::endl;//
-               // cache_set.writehalf(key,packet);
+                cache_set.writehalf(key,packet);
                 packet.finalize();
 
                 // Initialize a new queue for this flow
                 packet_queues_[key].push_back(packet);
             }
             // Update the flow's packet queue
-            else {//如果队列存在
+            else {//如果队列存在,即已经在传输
+                assert(cache_set.getStatus(key)=="fetching");
                 size_t target_clk = completed_reads_.right.at(key);
                 //packet.setQueueingDelay(queue_iter->second.size());//排队延迟
                 packet.addLatency(target_clk - clk() + 1);
+                cache_set.writehalf(key,packet);
                 packet.finalize();
 
                 // Add this packet to the existing flow queue

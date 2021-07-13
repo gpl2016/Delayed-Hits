@@ -29,16 +29,16 @@ public:
         SUPPRESS_UNUSED_WARNING(packet);
         CacheEntry written_entry;
         CacheEntry evicted_entry;
-        std::cout<<"lru _  writehalf"<<std::endl;
+        std::cout<<"lru _  write half"<<std::endl;
         // If a corresponding entry exists, update it
         auto position_iter = queue_.positions().find(key);//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
         //std::unordered_map<std::string, Iterator>& positions()
         if (position_iter != queue_.positions().end()) {
-            std::cout<<"If a corresponding entry exists, update it"<<std::endl;
+            std::cout<<"If a corresponding entry in or fetching , update it"<<std::endl;
             written_entry = *(position_iter->second);//position_iter是迭代器
 
             // Sanity checks健全性检查
-            assert(contains(key));
+            //assert(contains(key));
             assert(written_entry.isValid());
             assert(written_entry.key() == key);
             // If the read was successful, the corresponding entry is
@@ -58,33 +58,42 @@ public:
             if (queue_.size() > getNumEntries()-1) {
                 evicted_entry = queue_.popFront();
                 assert(evicted_entry.isValid()); // Sanity check
-                std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<std::endl;
-                occupied_entries_set_.erase(evicted_entry.key());
+                std::cout<<"half evicted_entry.key():"<<evicted_entry.key()<<"evicted_entry.status:"<<id_status_.find(evicted_entry.key())->second<<std::endl;
+                if(id_status_.find(evicted_entry.key())->second=="in"){
+                    setIntoOut(evicted_entry.key());
+                    occupied_entries_set_.erase(evicted_entry.key());
+                }
+                //Todo 如果是fetching怎么办，正在fetching的被替换出去
+
             }
 
             // Update the occupied entries set
-            occupied_entries_set_.insert(key);
-            std::cout<<"Update the occupied entries set _key:"<<key<<std::endl;
+            //occupied_entries_set_.insert(key);
+            std::cout<<"half Update the occupied entries set _key:"<<key<<std::endl;
         }
 
 
         // Finally, (re-)insert the written entry at the back
         queue_.insertBack(written_entry);
-        std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
-        std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+        // Todo fetching 的，在half中，如果被重复访问，也是先把链表前面的删了，再在后面加上。
+        std::cout<<"half queue_.size():"<<queue_.size()<<std::endl;
+        std::cout<<"half getNumEntries()"<<getNumEntries()<<std::endl;
         //想输出cache中的内容
-        std::list<CacheEntry>::iterator p1;
-
-        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
-            std::cout<<(*p1).key() <<" "<<std::endl;
+//        std::list<CacheEntry>::iterator p1;
+//
+//        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
+//            std::cout<<(*p1).key() <<" "<<std::endl;
+//        }
+        std::unordered_set<std::string > :: iterator  p2;
+        for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
+            std::cout<<"half occupied_entries_set_ output:"<<*(p2)<<std::endl;
         }
-
 
 
         // std::cout<<queue_.entries();
         // Sanity checks
         assert(occupied_entries_set_.size() <= getNumEntries());
-        assert(occupied_entries_set_.size() == queue_.size());
+        assert(occupied_entries_set_.size() <= queue_.size());
         return written_entry;
     }
 
@@ -109,62 +118,123 @@ public:
         auto position_iter = queue_.positions().find(key);//queue_是LRU队列，queue_.positions()是unordered_map，返回值：如果给定的键存在于unordered_map中，则它向该元素返回一个迭代器，否则返回映射迭代器的末尾。
         //std::unordered_map<std::string, Iterator>& positions()
         //std::list<T>::iterator Iterator;
-        if (position_iter != queue_.positions().end()) {
+        //
+        if(id_status_.find(key)->second=="in"&&position_iter != queue_.positions().end()){
             std::cout<<"If a corresponding entry exists, update it"<<std::endl;
             written_entry = *(position_iter->second);//position_iter是迭代器
-
-            // Sanity checks健全性检查
             assert(contains(key));
             assert(written_entry.isValid());
             assert(written_entry.key() == key);
-            // If the read was successful, the corresponding entry is
-            // the MRU element in the cache. Remove it from the queue.
             queue_.erase(position_iter);
+            queue_.insertBack(written_entry);
         }
-        // The update was unsuccessful, create a new entry to insert
-        else {
-            std::cout<<"The update was unsuccessful, create a new entry to insert _key:"<<key<<std::endl;
-            written_entry.update(key);
-            written_entry.toggleValid();
-
-            // If required, evict the LRU entry
-            //如果需要，逐出LRU入口     重要
-//            std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
-//            std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+        else if(id_status_.find(key)->second=="fetching"){
+            //还需要看一下缓存大小够不够
             if (queue_.size() > getNumEntries()-1) {
                 evicted_entry = queue_.popFront();
                 assert(evicted_entry.isValid()); // Sanity check
-                std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<std::endl;
-                occupied_entries_set_.erase(evicted_entry.key());
+                std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<"evicted_entry.status:"<<id_status_.find(evicted_entry.key())->second<<std::endl;
+                if(id_status_.find(evicted_entry.key())->second=="in"){
+                    setIntoOut(evicted_entry.key());
+                    occupied_entries_set_.erase(evicted_entry.key());
+                }
+
+                //Todo 如果是fetching怎么办，正在fetching的被替换出去  这就是问题所在了
+
             }
-
-            // Update the occupied entries set
+            setFetchingtoIn(key);
             occupied_entries_set_.insert(key);
-            std::cout<<"Update the occupied entries set _key:"<<key<<std::endl;
         }
+        else if(id_status_.find(key)->second=="out"){//这种情况比较少，z=1或z=0吧
+            if (queue_.size() > getNumEntries()-1) {
+                evicted_entry = queue_.popFront();
+                assert(evicted_entry.isValid()); // Sanity check
+                std::cout<<"stat=out  evicted_entry.key():"<<evicted_entry.key()<<"stat=out  evicted_entry.status:"<<id_status_.find(evicted_entry.key())->second<<std::endl;
+                if(id_status_.find(evicted_entry.key())->second=="in"){
+                    setIntoOut(evicted_entry.key());
+                    occupied_entries_set_.erase(evicted_entry.key());
+                }
 
+                //Todo 如果是fetching怎么办，正在fetching的被替换出去
 
-        // Finally, (re-)insert the written entry at the back
-        queue_.insertBack(written_entry);
+            }
+            queue_.insertBack(written_entry);//为了更新LRU链表
+            setOuttoIn(key);
+            occupied_entries_set_.insert(key);
+        }
         std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
         std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
         //想输出cache中的内容
-        std::list<CacheEntry>::iterator p1;
 
-        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
-           std::cout<<(*p1).key() <<" "<<std::endl;
-        }
 
         std::unordered_set<std::string > :: iterator  p2;
         for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
             std::cout<<"occupied_entries_set_ output:"<<*(p2)<<std::endl;
         }
-       // std::cout<<queue_.entries();
+        // std::cout<<queue_.entries();
         // Sanity checks
         assert(occupied_entries_set_.size() <= getNumEntries());
-        assert(occupied_entries_set_.size() == queue_.size());
+        assert(occupied_entries_set_.size() <= queue_.size());
         return written_entry;
     }
+//-----------------------------------------------------------------------------
+//        if (position_iter != queue_.positions().end()) {
+//            std::cout<<"If a corresponding entry exists, update it"<<std::endl;
+//            written_entry = *(position_iter->second);//position_iter是迭代器
+//            assert(id_status_.find(key)->second=="in");
+//            // Sanity checks健全性检查
+//            assert(contains(key));
+//            assert(written_entry.isValid());
+//            assert(written_entry.key() == key);
+//            // If the read was successful, the corresponding entry is
+//            // the MRU element in the cache. Remove it from the queue.
+//            queue_.erase(position_iter);
+//
+//        }
+//        // The update was unsuccessful, create a new entry to insert
+//        else {
+//            std::cout<<"The update was unsuccessful, create a new entry to insert _key:"<<key<<std::endl;
+//            written_entry.update(key);
+//            written_entry.toggleValid();
+//
+//            // If required, evict the LRU entry
+//            //如果需要，逐出LRU入口     重要
+////            std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
+////            std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+//            if (queue_.size() > getNumEntries()-1) {
+//                evicted_entry = queue_.popFront();
+//                assert(evicted_entry.isValid()); // Sanity check
+//                assert(id_status_.find(key)->second=="in");
+//                std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<std::endl;
+//                setIntoOut(evicted_entry.key());
+//                occupied_entries_set_.erase(evicted_entry.key());
+//            }
+//
+//            // Update the occupied entries set
+//            id_status_.erase(key);
+//            id_status_.insert({key,"in"});
+//            occupied_entries_set_.insert(key);
+//            std::cout<<"Update the occupied entries set _key:"<<key<<std::endl;
+//        }
+//
+//
+//        // Finally, (re-)insert the written entry at the back
+//        queue_.insertBack(written_entry);
+//        std::cout<<"queue_.size():"<<queue_.size()<<std::endl;
+//        std::cout<<"getNumEntries()"<<getNumEntries()<<std::endl;
+//        //想输出cache中的内容
+//
+//
+//        std::unordered_set<std::string > :: iterator  p2;
+//        for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
+//            std::cout<<"occupied_entries_set_ output:"<<*(p2)<<std::endl;
+//        }
+//       // std::cout<<queue_.entries();
+//        // Sanity checks
+//        assert(occupied_entries_set_.size() <= getNumEntries());
+//        assert(occupied_entries_set_.size() <= queue_.size());
+//        return written_entry;
+//    }
 
     /**
      * Simulates a sequence of cache writes for a particular flow's packet queue.
