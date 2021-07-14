@@ -14,6 +14,9 @@ The update was unsuccessful, create a new entry to insert _key:11
 half Update the occupied entries set _key:11
 half queue_.size():1
 half getNumEntries()2
+occupied_entries_set_ is empty
+queue_ in half write 
+11 
 ----------------
 current timestamp:2
 init12
@@ -23,13 +26,19 @@ The update was unsuccessful, create a new entry to insert _key:12
 half Update the occupied entries set _key:12
 half queue_.size():2
 half getNumEntries()2
+occupied_entries_set_ is empty
+queue_ in half write 
+11 
+12 
 process_all writeq
 lru _ write
-evicted_entry.key():11
-evicted_entry.status:fetching
+process all write key status:fetching
+evicted_entry.key():11evicted_entry.status:fetching
 queue_.size():1
 getNumEntries()2
 occupied_entries_set_ output:11
+queue_ after write 
+12 
 ----------------
 current timestamp:3
 init13
@@ -39,13 +48,18 @@ The update was unsuccessful, create a new entry to insert _key:13
 half Update the occupied entries set _key:13
 half queue_.size():2
 half getNumEntries()2
+occupied_entries_set_ is empty
 half occupied_entries_set_ output:11
+queue_ in half write 
+12 
+13 
 process_all writeq
 lru _ write
-evicted_entry.key():12
-evicted_entry.status:fetching
+process all write key status:fetching
+evicted_entry.key():12evicted_entry.status:fetching
 queue_.size():1
 getNumEntries()2
 occupied_entries_set_ output:12
 occupied_entries_set_ output:11
-//这里的顺序需要分析一下    新访问一个以及链表中本来有一个fetching  但其实现在已经到了z了  该in了  但是是先处理当前行 还是先下载呢
+queue_ after write 
+13 

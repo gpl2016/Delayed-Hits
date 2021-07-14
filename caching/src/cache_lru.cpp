@@ -85,10 +85,18 @@ public:
 //            std::cout<<(*p1).key() <<" "<<std::endl;
 //        }
         std::unordered_set<std::string > :: iterator  p2;
+
+        if(p2==occupied_entries_set_.end())
+            std::cout<<"occupied_entries_set_ is empty"<<std::endl;
         for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
             std::cout<<"half occupied_entries_set_ output:"<<*(p2)<<std::endl;
         }
 
+        std::list<CacheEntry>::iterator p1;
+        std::cout<<"queue_ in half write "<<std::endl;
+        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
+            std::cout<<(*p1).key() <<" "<<std::endl;
+        }
 
         // std::cout<<queue_.entries();
         // Sanity checks
@@ -119,6 +127,7 @@ public:
         //std::unordered_map<std::string, Iterator>& positions()
         //std::list<T>::iterator Iterator;
         //
+        std::cout<<"process all write key status:"<<id_status_.find(key)->second<<std::endl;
         if(id_status_.find(key)->second=="in"&&position_iter != queue_.positions().end()){
             std::cout<<"If a corresponding entry exists, update it"<<std::endl;
             written_entry = *(position_iter->second);//position_iter是迭代器
@@ -131,12 +140,18 @@ public:
         else if(id_status_.find(key)->second=="fetching"){
             //还需要看一下缓存大小够不够
             if (queue_.size() > getNumEntries()-1) {
-                evicted_entry = queue_.popFront();
+
+                evicted_entry = queue_.popFront();//在这就给erase了
+
                 assert(evicted_entry.isValid()); // Sanity check
                 std::cout<<"evicted_entry.key():"<<evicted_entry.key()<<"evicted_entry.status:"<<id_status_.find(evicted_entry.key())->second<<std::endl;
+
                 if(id_status_.find(evicted_entry.key())->second=="in"){
                     setIntoOut(evicted_entry.key());
                     occupied_entries_set_.erase(evicted_entry.key());
+                } else if (id_status_.find(evicted_entry.key())->second=="fetching"){
+                    if(key==evicted_entry.key()){assert(id_status_.find(evicted_entry.key())->second=="fetching");}
+
                 }
 
                 //Todo 如果是fetching怎么办，正在fetching的被替换出去  这就是问题所在了
@@ -171,10 +186,20 @@ public:
         for(p2=occupied_entries_set_.begin();p2!=occupied_entries_set_.end();p2++){
             std::cout<<"occupied_entries_set_ output:"<<*(p2)<<std::endl;
         }
+
+
+        std::list<CacheEntry>::iterator p1;
+        std::cout<<"queue_ after write "<<std::endl;
+        for(p1=queue_.entries().begin();p1!=queue_.entries().end();p1++){
+            std::cout<<(*p1).key() <<" "<<std::endl;
+        }
         // std::cout<<queue_.entries();
         // Sanity checks
         assert(occupied_entries_set_.size() <= getNumEntries());
         assert(occupied_entries_set_.size() <= queue_.size());
+
+
+
         return written_entry;
     }
 //-----------------------------------------------------------------------------

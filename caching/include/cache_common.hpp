@@ -75,6 +75,11 @@ public:
         return entry;
     }
 
+    T getFront(){
+        T entry = entries_.front();
+        return entry;
+    }
+
     /**
      * Insert the given entry at the back of the queue.
      */
